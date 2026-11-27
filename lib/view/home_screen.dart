@@ -14,12 +14,14 @@ import '../res/services/settings_service.dart';
 import '../res/theme/app_theme.dart';
 import '../view_model/audio_quran_controller.dart';
 import '../view_model/home_controller.dart';
+import '../view_model/quran_reader_controller.dart';
+import 'quran_index_view.dart';
 
 /// Main Dashboard screen hosting:
 /// - AppBar with Noor Al-Quran brand title & interactive Hijri/Gregorian calendar button
-/// - Live Ayah & Hadith ticker with Pause/Play & Status Gallery download
-/// - Live Prayer, Sunrise, Ishraq & Chasht strip
-/// - Audio Tilawat mini player card, Offline Quran card, Quran Correction & Islamic Essentials
+/// - Tab 0: Live Ayah/Hadith ticker, Prayer strip, Audio Tilawat, Offline Quran & Essentials
+/// - Tab 1: Complete Offline Quran Index (114 Surahs, 30 Paras, Bookmarks)
+/// - Tab 3: Language, Theme Appearance & Data Credits
 class HomeScreen extends GetView<HomeController> {
   const HomeScreen({super.key});
 
@@ -165,10 +167,14 @@ class HomeScreen extends GetView<HomeController> {
         ],
       ),
       body: Obx(() {
-        if (controller.currentTabIndex.value == 3) {
-          return _buildSettingsBody(context);
+        switch (controller.currentTabIndex.value) {
+          case 1:
+            return const QuranIndexView();
+          case 3:
+            return _buildSettingsBody(context);
+          default:
+            return _buildHomeDashboardBody(context);
         }
-        return _buildHomeDashboardBody(context);
       }),
       bottomNavigationBar: Obx(
             () => NavigationBar(
@@ -353,6 +359,8 @@ class HomeScreen extends GetView<HomeController> {
   }
 
   Widget _buildOfflineQuranCard(BuildContext context) {
+    final QuranReaderController quranCtrl = Get.find<QuranReaderController>();
+
     return Obx(() {
       final int surah = controller.settingsService.lastReadSurah.value;
       final int ayah = controller.settingsService.lastReadAyah.value;
@@ -360,9 +368,7 @@ class HomeScreen extends GetView<HomeController> {
       return Card(
         child: InkWell(
           borderRadius: BorderRadius.circular(16.r),
-          onTap: () {
-            // Next Module: Full Offline Quran Mushaf & Surah/Para Reader
-          },
+          onTap: () => controller.changeTab(1),
           child: Padding(
             padding: ResponsiveUtils.allPadding(14),
             child: Row(
@@ -400,33 +406,40 @@ class HomeScreen extends GetView<HomeController> {
                   ),
                 ),
                 8.hSpace,
-                Container(
-                  padding: ResponsiveUtils.symmetricPadding(
-                    horizontal: 10,
-                    vertical: 6,
+                InkWell(
+                  borderRadius: BorderRadius.circular(12.r),
+                  onTap: () => quranCtrl.openSurah(
+                    surahNumber: surah,
+                    initialAyah: ayah,
                   ),
-                  decoration: BoxDecoration(
-                    color: context.colorScheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Column(
-                    children: <Widget>[
-                      Text(
-                        AppStrings.continueReadingLabel.tr,
-                        style: context.textTheme.labelSmall?.copyWith(
-                          fontSize: 10.sp,
-                          color: context.colorScheme.onSecondaryContainer,
-                          fontWeight: FontWeight.w700,
+                  child: Container(
+                    padding: ResponsiveUtils.symmetricPadding(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Column(
+                      children: <Widget>[
+                        Text(
+                          AppStrings.continueReadingLabel.tr,
+                          style: context.textTheme.labelSmall?.copyWith(
+                            fontSize: 10.sp,
+                            color: context.colorScheme.onSecondaryContainer,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      Text(
-                        '$surah:$ayah',
-                        style: context.textTheme.labelMedium?.copyWith(
-                          color: context.colorScheme.onSecondaryContainer,
-                          fontWeight: FontWeight.w700,
+                        Text(
+                          '$surah:$ayah',
+                          style: context.textTheme.labelMedium?.copyWith(
+                            color: context.colorScheme.onSecondaryContainer,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -674,7 +687,7 @@ class HomeScreen extends GetView<HomeController> {
           ),
           12.vSpace,
 
-          // Credits & Data Sources Card (Copyright-safe Attributions)
+          // Credits & Data Sources Card
           Card(
             child: ListTile(
               leading: Icon(

@@ -9,6 +9,11 @@ class Endpoints {
   static String quranAyahEditions(String ayahReference) =>
       '$quranBaseUrl/ayah/$ayahReference/editions/quran-uthmani,en.asad,ur.jalandhry';
 
+  /// Fetches all Ayahs of a complete Surah (`1`..`114`) with Uthmani Arabic,
+  /// Muhammad Asad English translation, and Fateh Muhammad Jalandhry Urdu translation.
+  static String quranSurahEditions(int surahNumber) =>
+      '$quranBaseUrl/surah/$surahNumber/editions/quran-uthmani,en.asad,ur.jalandhry';
+
   // Sahih al-Bukhari Open Hadith CDN API
   static const String hadithCdnBaseUrl =
       'https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions';

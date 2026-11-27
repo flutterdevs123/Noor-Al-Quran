@@ -2,7 +2,9 @@ import 'package:get/get.dart';
 import '../../view/audio_quran_screen.dart';
 import '../../view/credits_screen.dart';
 import '../../view/home_screen.dart';
+import '../../view/quran_index_view.dart';
 import '../../view/splash_screen.dart';
+import '../../view/surah_reader_screen.dart';
 import '../../view_model/home_controller.dart';
 import '../../view_model/splash_controller.dart';
 import '../constants/app_constants.dart';
@@ -36,6 +38,18 @@ class AppPages {
     GetPage<AudioQuranScreen>(
       name: AppRoutes.audioQuran,
       page: () => const AudioQuranScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: AppConstants.routeTransitionDuration,
+    ),
+    GetPage<QuranIndexScreen>(
+      name: AppRoutes.quranIndex,
+      page: () => const QuranIndexScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: AppConstants.routeTransitionDuration,
+    ),
+    GetPage<SurahReaderScreen>(
+      name: AppRoutes.surahReader,
+      page: () => const SurahReaderScreen(),
       transition: Transition.rightToLeftWithFade,
       transitionDuration: AppConstants.routeTransitionDuration,
     ),

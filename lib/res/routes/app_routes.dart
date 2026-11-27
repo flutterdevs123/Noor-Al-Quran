@@ -6,5 +6,7 @@ class AppRoutes {
   static const String splash = '/splash';
   static const String home = '/home';
   static const String audioQuran = '/audio-quran';
+  static const String quranIndex = '/quran-index';
+  static const String surahReader = '/surah-reader';
   static const String credits = '/credits';
 }
