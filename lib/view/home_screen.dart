@@ -1,19 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import '../res/components/daily_reflection_carousel.dart';
+import '../res/components/dual_calendar_sheet.dart';
+import '../res/components/prayer_times_strip.dart';
 import '../res/constants/app_constants.dart';
 import '../res/constants/app_strings.dart';
-import '../res/responsive/responsive_builder.dart';
 import '../res/responsive/responsive_extensions.dart';
 import '../res/responsive/responsive_scroll_body.dart';
 import '../res/responsive/responsive_utils.dart';
+import '../res/routes/app_routes.dart';
+import '../res/services/settings_service.dart';
 import '../res/theme/app_theme.dart';
+import '../view_model/audio_quran_controller.dart';
 import '../view_model/home_controller.dart';
 
-/// Main Dashboard screen hosting the Hijri/Gregorian date header,
-/// live API Ayah & Hadith ticker, feature cards, and bottom navigation.
+/// Main Dashboard screen hosting:
+/// - AppBar with Noor Al-Quran brand title & interactive Hijri/Gregorian calendar button
+/// - Live Ayah & Hadith ticker with Pause/Play & Status Gallery download
+/// - Live Prayer, Sunrise, Ishraq & Chasht strip
+/// - Audio Tilawat mini player card, Offline Quran card, Quran Correction & Islamic Essentials
 class HomeScreen extends GetView<HomeController> {
   const HomeScreen({super.key});
+
+  void _openDualCalendar(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext ctx) {
+        return DualCalendarSheet(
+          initialHijriOffset: controller.settingsService.hijriDayOffset.value,
+          isUrdu: controller.settingsService.isUrdu,
+          onOffsetChanged: controller.updateHijriOffset,
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,81 +43,133 @@ class HomeScreen extends GetView<HomeController> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppConstants.appName),
-        actions: <Widget>[
-          // Multi-Language Switcher Chip (English <-> Urdu)
-          TextButton.icon(
-            onPressed: controller.toggleLanguage,
-            style: TextButton.styleFrom(
-              backgroundColor: context.colorScheme.primaryContainer,
-              foregroundColor: context.colorScheme.onPrimaryContainer,
-              padding: ResponsiveUtils.symmetricPadding(horizontal: 10, vertical: 4),
-              minimumSize: Size(44.sz, 34.sz),
-            ),
-            icon: Icon(Icons.translate_rounded, size: 16.sz),
-            label: Text(
-              AppStrings.switchLanguageLabel.tr,
-              style: context.textTheme.labelMedium?.copyWith(
+        centerTitle: false,
+        titleSpacing: 12.sz,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Container(
+              width: 28.sz,
+              height: 28.sz,
+              decoration: BoxDecoration(
+                color: context.colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Icon(
+                Icons.menu_book_rounded,
+                size: 16.sz,
                 color: context.colorScheme.onPrimaryContainer,
-                fontWeight: FontWeight.w700,
               ),
             ),
-          ),
-          4.hSpace,
+            8.hSpace,
+            Flexible(
+              child: Text(
+                AppConstants.appName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          // Compact Interactive Date & Calendar Trigger Pill
+          Obx(() {
+            final bool isUrdu = controller.settingsService.isUrdu;
+            final info = controller.todayDateInfo.value;
+            final String compactGregorian = isUrdu
+                ? info.formattedGregorian(isUrdu: true)
+                : DateFormat('d MMM yy').format(DateTime.now());
 
-          // Theme Mode Toggle Button
+            return Tooltip(
+              message: AppStrings.openCalendarTooltip.tr,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10.r),
+                onTap: () => _openDualCalendar(context),
+                child: Container(
+                  padding: ResponsiveUtils.symmetricPadding(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(10.r),
+                    border: Border.all(
+                      color: context.colorScheme.primary.withValues(alpha: 0.25),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: <Widget>[
+                          Text(
+                            info.formattedHijri(isUrdu: isUrdu),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.textTheme.labelSmall?.copyWith(
+                              fontSize: 9.5.sp,
+                              fontWeight: FontWeight.w700,
+                              color: context.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                          Text(
+                            compactGregorian,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.textTheme.labelSmall?.copyWith(
+                              fontSize: 8.5.sp,
+                              color: context.colorScheme.onPrimaryContainer
+                                  .withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                      4.hSpace,
+                      Icon(
+                        Icons.calendar_month_rounded,
+                        size: 15.sz,
+                        color: context.colorScheme.onPrimaryContainer,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+          2.hSpace,
+
+          // Compact Theme Mode Toggle Button
           IconButton(
             tooltip: isDark
                 ? AppStrings.switchToLightTheme.tr
                 : AppStrings.switchToDarkTheme.tr,
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.all(6.sz),
+            constraints: BoxConstraints(
+              minWidth: 34.sz,
+              minHeight: 34.sz,
+            ),
             onPressed: () => controller.toggleTheme(context),
             icon: Icon(
               isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-              size: 22.sz,
+              size: 19.sz,
             ),
           ),
           6.hSpace,
         ],
       ),
-      body: ResponsiveScrollBody(
-        onRefresh: () => controller.loadLiveDailyFeed(forceRefresh: true),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            // Top Dual-Calendar + Live Ayah & Hadith Auto-Swiping Card
-            Obx(
-                  () => DailyReflectionCarousel(
-                dateInfo: controller.todayDateInfo.value,
-                items: controller.dailyFeed.toList(),
-                pageController: controller.tickerPageController,
-                activeIndex: controller.currentSlideIndex.value,
-                isUrdu: controller.settingsService.isUrdu,
-                isLoadingFeed: controller.isFeedLoading.value,
-                onPageChanged: controller.onTickerPageChanged,
-                onUserDragStart: controller.pauseAutoSlide,
-                onUserDragEnd: controller.resumeAutoSlide,
-                onRefreshTap: () => controller.loadLiveDailyFeed(forceRefresh: true),
-              ),
-            ),
-            20.vSpace,
-
-            // Section Heading
-            Text(
-              AppStrings.quickAccessTitle.tr,
-              style: context.textTheme.titleLarge,
-            ),
-            12.vSpace,
-
-            // Adaptive Feature Cards (1 column in portrait, 2 balanced columns in landscape/tablet)
-            ResponsiveBuilder(
-              mobile: (BuildContext ctx) => _buildFeatureList(ctx, crossAxisCount: 1),
-              landscape: (BuildContext ctx) => _buildFeatureList(ctx, crossAxisCount: 2),
-              tablet: (BuildContext ctx) => _buildFeatureList(ctx, crossAxisCount: 2),
-            ),
-            24.vSpace,
-          ],
-        ),
-      ),
+      body: Obx(() {
+        if (controller.currentTabIndex.value == 3) {
+          return _buildSettingsBody(context);
+        }
+        return _buildHomeDashboardBody(context);
+      }),
       bottomNavigationBar: Obx(
             () => NavigationBar(
           selectedIndex: controller.currentTabIndex.value,
@@ -127,109 +201,267 @@ class HomeScreen extends GetView<HomeController> {
     );
   }
 
-  Widget _buildFeatureList(BuildContext context, {required int crossAxisCount}) {
-    final List<_DashboardFeatureItem> items = <_DashboardFeatureItem>[
-      _DashboardFeatureItem(
-        title: AppStrings.featureQuranTitle.tr,
-        subtitle: AppStrings.featureQuranSubtitle.tr,
-        icon: Icons.menu_book_rounded,
-      ),
-      _DashboardFeatureItem(
-        title: AppStrings.featureAudioTitle.tr,
-        subtitle: AppStrings.featureAudioSubtitle.tr,
-        icon: Icons.headphones_rounded,
-      ),
-      _DashboardFeatureItem(
-        title: AppStrings.featurePrayerTitle.tr,
-        subtitle: AppStrings.featurePrayerSubtitle.tr,
-        icon: Icons.mosque_rounded,
-      ),
-      _DashboardFeatureItem(
-        title: AppStrings.featureDailyTitle.tr,
-        subtitle: AppStrings.featureDailySubtitle.tr,
-        icon: Icons.auto_awesome_rounded,
-      ),
-      _DashboardFeatureItem(
-        title: AppStrings.featureTilawatTitle.tr,
-        subtitle: AppStrings.featureTilawatSubtitle.tr,
-        icon: Icons.mic_none_rounded,
-        isBadgeVisible: true,
-      ),
-    ];
-
-    if (crossAxisCount == 1) {
-      return Column(
-        children: items
-            .map(
-              (_DashboardFeatureItem item) => Padding(
-            padding: EdgeInsetsDirectional.only(bottom: 12.sz),
-            child: _buildFeatureCard(context, item),
+  Widget _buildHomeDashboardBody(BuildContext context) {
+    return ResponsiveScrollBody(
+      onRefresh: () => controller.loadLiveDailyFeed(forceRefresh: true),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          // 1. Top Live Ayah & Hadith Ticker Card
+          Obx(
+                () => DailyReflectionCarousel(
+              dateInfo: controller.todayDateInfo.value,
+              items: controller.dailyFeed.toList(),
+              pageController: controller.tickerPageController,
+              activeIndex: controller.currentSlideIndex.value,
+              isUrdu: controller.settingsService.isUrdu,
+              isLoadingFeed: controller.isFeedLoading.value,
+              isPaused: controller.isTickerPaused.value,
+              isSavingStatus: controller.isSavingStatus.value,
+              onPageChanged: controller.onTickerPageChanged,
+              onUserDragStart: controller.pauseAutoSlideOnDrag,
+              onUserDragEnd: controller.resumeAutoSlideAfterDrag,
+              onTogglePause: controller.toggleTickerPause,
+              onRefreshTap: () => controller.loadLiveDailyFeed(forceRefresh: true),
+              onDownloadStatusTap: (item) =>
+                  controller.saveItemAsStatusImage(context, item),
+            ),
           ),
-        )
-            .toList(),
-      );
-    }
+          14.vSpace,
 
-    // Equal-height 2-column rows for Landscape and Tablet viewports
-    final List<Widget> rows = <Widget>[];
-    for (int i = 0; i < items.length; i += 2) {
-      final _DashboardFeatureItem first = items[i];
-      final _DashboardFeatureItem? second =
-      (i + 1 < items.length) ? items[i + 1] : null;
+          // 2. Live Nimazon & Sun Timings Strip
+          Obx(
+                () => PrayerTimesStrip(
+              schedule: controller.prayerSchedule.value,
+            ),
+          ),
+          14.vSpace,
 
-      rows.add(
-        Padding(
-          padding: EdgeInsetsDirectional.only(bottom: 12.sz),
-          child: IntrinsicHeight(
+          // 3. Audio Tilawat Player Bar Card (Top 20 Qaris + Offline + Notification Player)
+          _buildAudioTilawatCard(context),
+          12.vSpace,
+
+          // 4. Offline Quran Recitation Card (with Saved Reading Progress)
+          _buildOfflineQuranCard(context),
+          12.vSpace,
+
+          // 5. Quran Tilawat Correction Module Card
+          _buildQuranCorrectionCard(context),
+          16.vSpace,
+
+          // 6. Islamic Essentials Section (Qibla Finder, Tasbih, Daily Duas)
+          Text(
+            AppStrings.islamicEssentialsTitle.tr,
+            style: context.textTheme.titleMedium,
+          ),
+          10.vSpace,
+          _buildIslamicEssentialsRow(context),
+          24.vSpace,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAudioTilawatCard(BuildContext context) {
+    final AudioQuranController audioCtrl = Get.find<AudioQuranController>();
+
+    return Obx(() {
+      final activeSurah = audioCtrl.currentSurah.value;
+      final bool isPlaying = audioCtrl.isPlaying.value;
+
+      return Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16.r),
+          onTap: () => Get.toNamed(AppRoutes.audioQuran),
+          child: Padding(
+            padding: ResponsiveUtils.allPadding(14),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                Expanded(child: _buildFeatureCard(context, first)),
+                Container(
+                  width: 48.sz,
+                  height: 48.sz,
+                  decoration: BoxDecoration(
+                    gradient: context.appColors.heroGradient,
+                    borderRadius: BorderRadius.circular(14.r),
+                  ),
+                  child: Icon(
+                    isPlaying ? Icons.graphic_eq_rounded : Icons.headphones_rounded,
+                    size: 24.sz,
+                    color: context.appColors.onHeroSecondary,
+                  ),
+                ),
                 12.hSpace,
                 Expanded(
-                  child: second != null
-                      ? _buildFeatureCard(context, second)
-                      : const SizedBox.shrink(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        activeSurah != null
+                            ? 'Surah ${activeSurah.englishName} (${activeSurah.arabicName})'
+                            : AppStrings.audioTilawatTitle.tr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.textTheme.titleMedium,
+                      ),
+                      3.vSpace,
+                      Text(
+                        activeSurah != null
+                            ? audioCtrl.selectedQari.value.name
+                            : AppStrings.audioTilawatSubtitle.tr,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                8.hSpace,
+                Container(
+                  padding: ResponsiveUtils.symmetricPadding(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(
+                        isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                        size: 16.sz,
+                        color: context.colorScheme.onPrimaryContainer,
+                      ),
+                      2.hSpace,
+                      Text(
+                        isPlaying ? 'Playing' : AppStrings.openPlayerLabel.tr,
+                        style: context.textTheme.labelSmall?.copyWith(
+                          color: context.colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
         ),
       );
-    }
-
-    return Column(children: rows);
+    });
   }
 
-  Widget _buildFeatureCard(BuildContext context, _DashboardFeatureItem item) {
+  Widget _buildOfflineQuranCard(BuildContext context) {
+    return Obx(() {
+      final int surah = controller.settingsService.lastReadSurah.value;
+      final int ayah = controller.settingsService.lastReadAyah.value;
+
+      return Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16.r),
+          onTap: () {
+            // Next Module: Full Offline Quran Mushaf & Surah/Para Reader
+          },
+          child: Padding(
+            padding: ResponsiveUtils.allPadding(14),
+            child: Row(
+              children: <Widget>[
+                Container(
+                  width: 48.sz,
+                  height: 48.sz,
+                  decoration: BoxDecoration(
+                    color: context.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(14.r),
+                  ),
+                  child: Icon(
+                    Icons.menu_book_rounded,
+                    size: 24.sz,
+                    color: context.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                12.hSpace,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        AppStrings.offlineQuranTitle.tr,
+                        style: context.textTheme.titleMedium,
+                      ),
+                      3.vSpace,
+                      Text(
+                        AppStrings.offlineQuranSubtitle.tr,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                8.hSpace,
+                Container(
+                  padding: ResponsiveUtils.symmetricPadding(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Column(
+                    children: <Widget>[
+                      Text(
+                        AppStrings.continueReadingLabel.tr,
+                        style: context.textTheme.labelSmall?.copyWith(
+                          fontSize: 10.sp,
+                          color: context.colorScheme.onSecondaryContainer,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        '$surah:$ayah',
+                        style: context.textTheme.labelMedium?.copyWith(
+                          color: context.colorScheme.onSecondaryContainer,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildQuranCorrectionCard(BuildContext context) {
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(16.r),
-        onTap: () {
-          // Will navigate to respective feature screens as they are added in upcoming steps.
-        },
+        onTap: () {},
         child: Padding(
           padding: ResponsiveUtils.allPadding(14),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               Container(
-                width: 46.sz,
-                height: 46.sz,
+                width: 48.sz,
+                height: 48.sz,
                 decoration: BoxDecoration(
                   color: context.colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12.r),
+                  borderRadius: BorderRadius.circular(14.r),
                 ),
                 child: Icon(
-                  item.icon,
-                  size: 23.sz,
+                  Icons.mic_rounded,
+                  size: 24.sz,
                   color: context.colorScheme.onPrimaryContainer,
                 ),
               ),
               12.hSpace,
               Expanded(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Wrap(
@@ -238,33 +470,32 @@ class HomeScreen extends GetView<HomeController> {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: <Widget>[
                         Text(
-                          item.title,
+                          AppStrings.featureTilawatTitle.tr,
                           style: context.textTheme.titleMedium,
                         ),
-                        if (item.isBadgeVisible)
-                          Container(
-                            padding: ResponsiveUtils.symmetricPadding(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: context.colorScheme.secondaryContainer,
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            child: Text(
-                              AppStrings.comingSoon.tr,
-                              style: context.textTheme.labelSmall?.copyWith(
-                                color: context.colorScheme.onSecondaryContainer,
-                                fontWeight: FontWeight.w700,
-                              ),
+                        Container(
+                          padding: ResponsiveUtils.symmetricPadding(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: context.colorScheme.secondaryContainer,
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          child: Text(
+                            AppStrings.comingSoon.tr,
+                            style: context.textTheme.labelSmall?.copyWith(
+                              color: context.colorScheme.onSecondaryContainer,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
+                        ),
                       ],
                     ),
-                    4.vSpace,
+                    3.vSpace,
                     Text(
-                      item.subtitle,
-                      maxLines: 3,
+                      AppStrings.featureTilawatSubtitle.tr,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: context.textTheme.bodySmall,
                     ),
@@ -283,18 +514,187 @@ class HomeScreen extends GetView<HomeController> {
       ),
     );
   }
-}
 
-class _DashboardFeatureItem {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final bool isBadgeVisible;
+  Widget _buildIslamicEssentialsRow(BuildContext context) {
+    final List<({String title, IconData icon})> tools =
+    <({String title, IconData icon})>[
+      (title: AppStrings.toolQiblaTitle.tr, icon: Icons.explore_rounded),
+      (title: AppStrings.toolTasbihTitle.tr, icon: Icons.radio_button_checked_rounded),
+      (title: AppStrings.toolDuasTitle.tr, icon: Icons.volunteer_activism_rounded),
+    ];
 
-  const _DashboardFeatureItem({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    this.isBadgeVisible = false,
-  });
+    return Row(
+      children: List<Widget>.generate(tools.length, (int index) {
+        final tool = tools[index];
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsetsDirectional.only(
+              end: index < tools.length - 1 ? 10.sz : 0,
+            ),
+            child: Card(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16.r),
+                onTap: () {},
+                child: Padding(
+                  padding: ResponsiveUtils.symmetricPadding(
+                    horizontal: 8,
+                    vertical: 14,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      Container(
+                        width: 40.sz,
+                        height: 40.sz,
+                        decoration: BoxDecoration(
+                          color: context.colorScheme.primaryContainer,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          tool.icon,
+                          size: 20.sz,
+                          color: context.colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                      8.vSpace,
+                      Text(
+                        tool.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: context.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  /// Dedicated Settings Tab housing App Language, Theme Appearance, and Data Credits.
+  Widget _buildSettingsBody(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return ResponsiveScrollBody(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            AppStrings.settingsTitle.tr,
+            style: context.textTheme.headlineSmall,
+          ),
+          14.vSpace,
+
+          // Language Selector Card
+          Card(
+            child: Padding(
+              padding: ResponsiveUtils.allPadding(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.translate_rounded,
+                        color: context.colorScheme.primary,
+                      ),
+                      10.hSpace,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              AppStrings.appLanguageTitle.tr,
+                              style: context.textTheme.titleMedium,
+                            ),
+                            Text(
+                              AppStrings.appLanguageSubtitle.tr,
+                              style: context.textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  14.vSpace,
+                  Obx(() {
+                    final bool isUrdu = controller.settingsService.isUrdu;
+                    return SegmentedButton<String>(
+                      segments: const <ButtonSegment<String>>[
+                        ButtonSegment<String>(
+                          value: 'en',
+                          label: Text('English'),
+                        ),
+                        ButtonSegment<String>(
+                          value: 'ur',
+                          label: Text('اردو'),
+                        ),
+                      ],
+                      selected: <String>{isUrdu ? 'ur' : 'en'},
+                      onSelectionChanged: (Set<String> selection) {
+                        final String code = selection.first;
+                        controller.setAppLanguage(
+                          code == 'ur'
+                              ? SettingsService.urduLocale
+                              : SettingsService.englishLocale,
+                        );
+                      },
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+          12.vSpace,
+
+          // Theme Mode Card
+          Card(
+            child: ListTile(
+              leading: Icon(
+                isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                color: context.colorScheme.primary,
+              ),
+              title: Text(AppStrings.appearanceTitle.tr),
+              subtitle: Text(
+                isDark
+                    ? AppStrings.darkModeLabel.tr
+                    : AppStrings.lightModeLabel.tr,
+              ),
+              trailing: Switch(
+                value: isDark,
+                onChanged: (_) => controller.toggleTheme(context),
+              ),
+            ),
+          ),
+          12.vSpace,
+
+          // Credits & Data Sources Card (Copyright-safe Attributions)
+          Card(
+            child: ListTile(
+              leading: Icon(
+                Icons.verified_user_rounded,
+                color: context.colorScheme.primary,
+              ),
+              title: const Text('Credits & Data Sources'),
+              subtitle: const Text(
+                'Acknowledgements for Quran text, audio Qaris & APIs',
+              ),
+              trailing: Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16.sz,
+                color: context.appColors.textTertiary,
+              ),
+              onTap: () => Get.toNamed(AppRoutes.credits),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

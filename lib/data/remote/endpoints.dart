@@ -1,4 +1,4 @@
-/// Central API endpoint definitions for Quran and Sahih Hadith services.
+/// Central API endpoint definitions for Quran, Sahih Hadith, and Translation services.
 class Endpoints {
   Endpoints._();
 
@@ -21,4 +21,11 @@ class Endpoints {
 
   static String bukhariUrdu(int hadithNumber) =>
       '$hadithCdnBaseUrl/urd-bukhari/$hadithNumber.min.json';
+
+  // Live English <-> Urdu Translation APIs (Primary + Fallback)
+  static const String googleTranslateUrl =
+      'https://translate.googleapis.com/translate_a/single';
+
+  static const String myMemoryTranslateUrl =
+      'https://api.mymemory.translated.net/get';
 }

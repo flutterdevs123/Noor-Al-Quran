@@ -1,11 +1,12 @@
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
+import '../res/constants/app_constants.dart';
 import '../res/constants/app_strings.dart';
 import '../res/routes/app_routes.dart';
 import '../res/services/settings_service.dart';
 import 'base_controller.dart';
 
-/// Handles startup initialization checks and navigates directly to the Dashboard.
+/// Displays Noor Al-Quran splash screen for 3 seconds while running local readiness checks.
 class SplashController extends BaseController {
   final SettingsService _settingsService = Get.find<SettingsService>();
 
@@ -19,26 +20,31 @@ class SplashController extends BaseController {
     });
   }
 
-  /// Performs startup readiness checks (local storage, theme/locale) without fake delays.
+  /// Runs startup storage & locale checks in parallel with the 3-second splash display.
   Future<void> initializeApp() async {
     await runSafely<void>(
           () async {
         statusKey.value = AppStrings.splashVerifyingData;
 
-        final bool isStorageHealthy = _settingsService.verifyStorageIntegrity();
-        if (!isStorageHealthy) {
-          throw StateError(AppStrings.storageInitError.tr);
-        }
+        await Future.wait<void>(<Future<void>>[
+          _performStartupChecks(),
+          Future<void>.delayed(AppConstants.splashDisplayDuration),
+        ]);
 
-        // Apply persisted theme & locale before entering Dashboard.
-        Get.changeThemeMode(_settingsService.themeMode.value);
-        await Get.updateLocale(_settingsService.currentLocale.value);
-
-        // Navigate directly to Dashboard (no login/auth required).
         Get.offAllNamed(AppRoutes.home);
       },
       fallbackErrorMessage: AppStrings.storageInitError.tr,
     );
+  }
+
+  Future<void> _performStartupChecks() async {
+    final bool isStorageHealthy = _settingsService.verifyStorageIntegrity();
+    if (!isStorageHealthy) {
+      throw StateError(AppStrings.storageInitError.tr);
+    }
+
+    Get.changeThemeMode(_settingsService.themeMode.value);
+    await Get.updateLocale(_settingsService.currentLocale.value);
   }
 
   @override

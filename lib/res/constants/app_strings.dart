@@ -7,11 +7,57 @@ class AppStrings {
   static const String bismillah = 'bismillah';
   static const String appTagline = 'app_tagline';
 
-  // Live Daily Ayah, Hadith & Calendar Ticker
+  // Live Daily Ayah, Hadith & Status Download
   static const String dailyAyahBadge = 'daily_ayah_badge';
   static const String dailyHadithBadge = 'daily_hadith_badge';
+  static const String pauseTickerTooltip = 'pause_ticker_tooltip';
+  static const String resumeTickerTooltip = 'resume_ticker_tooltip';
+  static const String pausedLabel = 'paused_label';
+  static const String liveLabel = 'live_label';
+  static const String downloadStatusTooltip = 'download_status_tooltip';
+  static const String savingStatusImage = 'saving_status_image';
+  static const String statusSavedToGallery = 'status_saved_to_gallery';
+  static const String statusSaveFailed = 'status_save_failed';
   static const String refreshFeedTooltip = 'refresh_feed_tooltip';
   static const String loadingLiveFeed = 'loading_live_feed';
+
+  // Dual Calendar Sheet
+  static const String openCalendarTooltip = 'open_calendar_tooltip';
+  static const String dualCalendarTitle = 'dual_calendar_title';
+  static const String hijriCalendarLabel = 'hijri_calendar_label';
+  static const String gregorianCalendarLabel = 'gregorian_calendar_label';
+  static const String moonSightingAdjustment = 'moon_sighting_adjustment';
+  static const String todayButton = 'today_button';
+
+  // Prayer & Sun Times Strip
+  static const String prayerTimesSectionTitle = 'prayer_times_section_title';
+  static const String nextPrayerPrefix = 'next_prayer_prefix';
+  static const String prayerFajr = 'prayer_fajr';
+  static const String prayerSunrise = 'prayer_sunrise';
+  static const String prayerIshraq = 'prayer_ishraq';
+  static const String prayerChasht = 'prayer_chasht';
+  static const String prayerDhuhr = 'prayer_dhuhr';
+  static const String prayerAsr = 'prayer_asr';
+  static const String prayerMaghrib = 'prayer_maghrib';
+  static const String prayerIsha = 'prayer_isha';
+  static const String currentLocationLabel = 'current_location_label';
+  static const String defaultLocationLabel = 'default_location_label';
+
+  // Audio Tilawat & Offline Quran Sections
+  static const String audioTilawatTitle = 'audio_tilawat_title';
+  static const String audioTilawatSubtitle = 'audio_tilawat_subtitle';
+  static const String openPlayerLabel = 'open_player_label';
+  static const String offlineQuranTitle = 'offline_quran_title';
+  static const String offlineQuranSubtitle = 'offline_quran_subtitle';
+  static const String continueReadingLabel = 'continue_reading_label';
+
+  // Quran Correction & Islamic Essentials
+  static const String featureTilawatTitle = 'feature_tilawat_title';
+  static const String featureTilawatSubtitle = 'feature_tilawat_subtitle';
+  static const String islamicEssentialsTitle = 'islamic_essentials_title';
+  static const String toolQiblaTitle = 'tool_qibla_title';
+  static const String toolTasbihTitle = 'tool_tasbih_title';
+  static const String toolDuasTitle = 'tool_duas_title';
 
   // Common Actions & States
   static const String retry = 'retry';
@@ -30,22 +76,13 @@ class AppStrings {
   static const String navPrayer = 'nav_prayer';
   static const String navSettings = 'nav_settings';
 
-  // Dashboard Sections & Feature Cards
-  static const String quickAccessTitle = 'quick_access_title';
-  static const String featureQuranTitle = 'feature_quran_title';
-  static const String featureQuranSubtitle = 'feature_quran_subtitle';
-  static const String featureAudioTitle = 'feature_audio_title';
-  static const String featureAudioSubtitle = 'feature_audio_subtitle';
-  static const String featurePrayerTitle = 'feature_prayer_title';
-  static const String featurePrayerSubtitle = 'feature_prayer_subtitle';
-  static const String featureDailyTitle = 'feature_daily_title';
-  static const String featureDailySubtitle = 'feature_daily_subtitle';
-  static const String featureTilawatTitle = 'feature_tilawat_title';
-  static const String featureTilawatSubtitle = 'feature_tilawat_subtitle';
-
-  // Theme & Language Controls
+  // Settings Tab
+  static const String settingsTitle = 'settings_title';
+  static const String appLanguageTitle = 'app_language_title';
+  static const String appLanguageSubtitle = 'app_language_subtitle';
+  static const String appearanceTitle = 'appearance_title';
+  static const String darkModeLabel = 'dark_mode_label';
+  static const String lightModeLabel = 'light_mode_label';
   static const String switchToDarkTheme = 'switch_to_dark_theme';
   static const String switchToLightTheme = 'switch_to_light_theme';
-  static const String switchLanguageTooltip = 'switch_language_tooltip';
-  static const String switchLanguageLabel = 'switch_language_label';
 }

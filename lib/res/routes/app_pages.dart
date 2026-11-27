@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import '../../view/audio_quran_screen.dart';
+import '../../view/credits_screen.dart';
 import '../../view/home_screen.dart';
 import '../../view/splash_screen.dart';
 import '../../view_model/home_controller.dart';
@@ -29,6 +31,18 @@ class AppPages {
         Get.lazyPut<HomeController>(() => HomeController());
       }),
       transition: Transition.fadeIn,
+      transitionDuration: AppConstants.routeTransitionDuration,
+    ),
+    GetPage<AudioQuranScreen>(
+      name: AppRoutes.audioQuran,
+      page: () => const AudioQuranScreen(),
+      transition: Transition.rightToLeftWithFade,
+      transitionDuration: AppConstants.routeTransitionDuration,
+    ),
+    GetPage<CreditsScreen>(
+      name: AppRoutes.credits,
+      page: () => const CreditsScreen(),
+      transition: Transition.rightToLeftWithFade,
       transitionDuration: AppConstants.routeTransitionDuration,
     ),
   ];

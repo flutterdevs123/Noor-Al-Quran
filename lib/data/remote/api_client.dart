@@ -30,9 +30,15 @@ class ApiClient {
   }
 
   /// Performs a GET request to an absolute [url] and returns decoded JSON map.
-  Future<Map<String, dynamic>> getJson(String url) async {
+  Future<Map<String, dynamic>> getJson(
+      String url, {
+        Map<String, dynamic>? queryParameters,
+      }) async {
     try {
-      final Response<dynamic> response = await _dio.get<dynamic>(url);
+      final Response<dynamic> response = await _dio.get<dynamic>(
+        url,
+        queryParameters: queryParameters,
+      );
       if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
         return response.data as Map<String, dynamic>;
       }
@@ -44,6 +50,31 @@ class ApiClient {
       );
     } on DioException catch (e) {
       debugPrint('[ApiClient] Network failure for $url: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Performs a GET request returning dynamic JSON (List or Map), used by Translation APIs.
+  Future<dynamic> getDynamic(
+      String url, {
+        Map<String, dynamic>? queryParameters,
+      }) async {
+    try {
+      final Response<dynamic> response = await _dio.get<dynamic>(
+        url,
+        queryParameters: queryParameters,
+      );
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        type: DioExceptionType.badResponse,
+        message: 'Unexpected HTTP status: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      debugPrint('[ApiClient] Dynamic request failure for $url: ${e.message}');
       rethrow;
     }
   }

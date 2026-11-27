@@ -1,18 +1,21 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
-import '../../data/remote/api_client.dart';
-import '../../data/remote/endpoints.dart';
-import '../../models/daily_inspiration_model.dart';
-import '../../models/islamic_date_info_model.dart';
-import '../../res/services/settings_service.dart';
-import '../../res/utils/urdu_number_utils.dart';
+import '../data/remote/api_client.dart';
+import '../data/remote/endpoints.dart';
+import '../models/daily_inspiration_model.dart';
+import '../models/islamic_date_info_model.dart';
+import '../res/services/settings_service.dart';
+import '../res/utils/urdu_number_utils.dart';
+import 'translation_repository.dart';
 
 /// Fetches live daily random (or Islamic-occasion-specific) Quranic Ayahs
-/// and Sahih Hadiths from remote APIs, caching today's feed locally.
+/// and Sahih Hadiths from remote APIs, using [TranslationRepository] whenever
+/// an English or Urdu translation needs live API translation, and caches locally.
 class DailyInspirationRepository {
   final ApiClient _apiClient;
   final SettingsService _settingsService;
+  final TranslationRepository _translationRepository;
 
   static const int _totalQuranAyahs = 6236;
   static const int _maxBukhariNumber = 7563;
@@ -20,13 +23,13 @@ class DailyInspirationRepository {
   DailyInspirationRepository({
     ApiClient? apiClient,
     required SettingsService settingsService,
+    TranslationRepository? translationRepository,
   })  : _apiClient = apiClient ?? ApiClient(),
-        _settingsService = settingsService;
+        _settingsService = settingsService,
+        _translationRepository =
+            translationRepository ?? TranslationRepository(apiClient: apiClient);
 
   /// Returns an alternating list `[Ayah, Hadith, Ayah, Hadith]` for today's date.
-  /// - If today is a special Islamic date (e.g. 10 Dhul Hijjah Qurbani, Eid, Ramadan, Jummah),
-  ///   the first Ayah & Hadith pair matches that occasion, followed by a fresh random pair.
-  /// - Uses same-day local cache unless [forceRefresh] is true.
   Future<List<DailyInspirationModel>> fetchDailyLiveFeed({
     required IslamicDateInfoModel dateInfo,
     bool forceRefresh = false,
@@ -73,7 +76,7 @@ class DailyInspirationRepository {
     if (pair1[0] != null) liveItems.add(pair1[0]!);
     if (pair1[1] != null) liveItems.add(pair1[1]!);
 
-    // Pair 2: Additional live random Ayah & Sahih Hadith for continuous news-ticker rotation
+    // Pair 2: Additional live random Ayah & Sahih Hadith for continuous rotation
     final String secondAyahRef = (random.nextInt(_totalQuranAyahs) + 1).toString();
     final int secondBukhariNum = random.nextInt(_maxBukhariNumber) + 1;
 
@@ -118,27 +121,30 @@ class DailyInspirationRepository {
       final dynamic rawData = response['data'];
       if (rawData is! List<dynamic> || rawData.length < 3) return null;
 
-      final Map<String, dynamic> arabicEdition =
-      rawData[0] as Map<String, dynamic>;
-      final Map<String, dynamic> englishEdition =
-      rawData[1] as Map<String, dynamic>;
-      final Map<String, dynamic> urduEdition =
-      rawData[2] as Map<String, dynamic>;
+      final Map<String, dynamic> arabicEdition = rawData[0] as Map<String, dynamic>;
+      final Map<String, dynamic> englishEdition = rawData[1] as Map<String, dynamic>;
+      final Map<String, dynamic> urduEdition = rawData[2] as Map<String, dynamic>;
 
       final Map<String, dynamic> surahMeta =
           arabicEdition['surah'] as Map<String, dynamic>? ?? <String, dynamic>{};
 
-      final String surahEnglishName =
-          surahMeta['englishName'] as String? ?? 'Quran';
+      final String surahEnglishName = surahMeta['englishName'] as String? ?? 'Quran';
       final String surahArabicName = surahMeta['name'] as String? ?? '';
       final int surahNumber = surahMeta['number'] as int? ?? 1;
       final int ayahInSurah = arabicEdition['numberInSurah'] as int? ?? 1;
 
       final String arabicText = (arabicEdition['text'] as String? ?? '').trim();
-      final String englishText = (englishEdition['text'] as String? ?? '').trim();
-      final String urduText = (urduEdition['text'] as String? ?? '').trim();
+      String englishText = (englishEdition['text'] as String? ?? '').trim();
+      String urduText = (urduEdition['text'] as String? ?? '').trim();
 
       if (arabicText.isEmpty) return null;
+
+      // Ensure both English and Urdu translations are always populated via Translation API if needed
+      if (urduText.isEmpty && englishText.isNotEmpty) {
+        urduText = await _translationRepository.translateEnglishToUrdu(englishText);
+      } else if (englishText.isEmpty && urduText.isNotEmpty) {
+        englishText = await _translationRepository.translateUrduToEnglish(urduText);
+      }
 
       return DailyInspirationModel(
         id: 'ayah_${surahNumber}_$ayahInSurah',
@@ -153,8 +159,7 @@ class DailyInspirationRepository {
         occasionLabelUr: occasionUr,
       );
     } catch (e) {
-      debugPrint(
-          '[DailyInspirationRepository] Failed to fetch Ayah ($reference): $e');
+      debugPrint('[DailyInspirationRepository] Failed to fetch Ayah ($reference): $e');
       return null;
     }
   }
@@ -175,25 +180,33 @@ class DailyInspirationRepository {
       );
 
       final String arabicText = _extractHadithText(responses[0]);
-      final String englishText = _extractHadithText(responses[1]);
-      final String urduText = _extractHadithText(responses[2]);
+      String englishText = _extractHadithText(responses[1]);
+      String urduText = _extractHadithText(responses[2]);
 
-      if (arabicText.isEmpty && englishText.isEmpty) return null;
+      if (arabicText.isEmpty && englishText.isEmpty && urduText.isEmpty) {
+        return null;
+      }
+
+      // Use Live Translation API whenever either Urdu or English Hadith translation is missing
+      if (urduText.isEmpty && englishText.isNotEmpty) {
+        urduText = await _translationRepository.translateEnglishToUrdu(englishText);
+      } else if (englishText.isEmpty && urduText.isNotEmpty) {
+        englishText = await _translationRepository.translateUrduToEnglish(urduText);
+      }
 
       return DailyInspirationModel(
         id: 'bukhari_$hadithNumber',
         type: InspirationType.hadith,
         arabicText: arabicText.isNotEmpty ? arabicText : englishText,
         englishTranslation: englishText,
-        urduTranslation: urduText.isNotEmpty ? urduText : englishText,
+        urduTranslation: urduText,
         englishReference: 'Sahih al-Bukhari • $hadithNumber',
         urduReference: 'صحیح البخاری • ${UrduNumberUtils.format(hadithNumber)}',
         occasionLabelEn: occasionEn,
         occasionLabelUr: occasionUr,
       );
     } catch (e) {
-      debugPrint(
-          '[DailyInspirationRepository] Failed to fetch Bukhari #$hadithNumber: $e');
+      debugPrint('[DailyInspirationRepository] Failed to fetch Bukhari #$hadithNumber: $e');
       return null;
     }
   }
@@ -201,17 +214,15 @@ class DailyInspirationRepository {
   String _extractHadithText(Map<String, dynamic> payload) {
     final dynamic hadiths = payload['hadiths'];
     if (hadiths is List<dynamic> && hadiths.isNotEmpty) {
-      final Map<String, dynamic> first =
-      hadiths.first as Map<String, dynamic>;
+      final Map<String, dynamic> first = hadiths.first as Map<String, dynamic>;
       return (first['text'] as String? ?? '').trim();
     }
     return '';
   }
 
   String _encodeFeed(List<DailyInspirationModel> items) {
-    final List<Map<String, dynamic>> list = items
-        .map((DailyInspirationModel e) => e.toJson())
-        .toList();
+    final List<Map<String, dynamic>> list =
+    items.map((DailyInspirationModel e) => e.toJson()).toList();
     return jsonEncode(list);
   }
 

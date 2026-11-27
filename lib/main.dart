@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'res/constants/app_constants.dart';
 import 'res/localization/app_translations.dart';
 import 'res/responsive/responsive_wrapper.dart';
@@ -19,6 +20,18 @@ Future<void> main() async {
         FlutterError.presentError(details);
         debugPrint('[FlutterError] ${details.exceptionAsString()}');
       };
+
+      // Initialize Background Audio & Lockscreen Notification Media Service safely
+      try {
+        await JustAudioBackground.init(
+          androidNotificationChannelId: 'com.nooralquran.app.channel.audio',
+          androidNotificationChannelName: 'Quran Tilawat Playback',
+          androidNotificationOngoing: true,
+          androidShowNotificationBadge: true,
+        );
+      } catch (e) {
+        debugPrint('[AudioBackgroundInitError] $e');
+      }
 
       // Initialize persistent local settings service before rendering UI
       final SettingsService settingsService = await SettingsService().init();

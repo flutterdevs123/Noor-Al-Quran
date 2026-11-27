@@ -30,14 +30,19 @@ class AppConstants {
   static const double maxTranslationFontSize = 26.0;
   static const double defaultTranslationFontSize = 17.0;
 
-  // Live Ayah & Hadith Ticker Intervals
+  // Splash & Live Feed Timing Constants
+  static const Duration splashDisplayDuration = Duration(seconds: 3);
   static const Duration liveFeedSlideInterval = Duration(seconds: 4);
   static const Duration liveFeedTransitionDuration = Duration(milliseconds: 550);
+
+  // Default Fallback Coordinates (Makkah Al-Mukarramah) if GPS is unavailable
+  static const double defaultLatitude = 21.4225;
+  static const double defaultLongitude = 39.8262;
 
   // Feature Flags
   static const bool tilawatCheckerEnabled = false;
 
-  // Data Integrity (Replace with actual SHA-256 hash of bundled Quran JSON/DB)
+  // Data Integrity
   static const String quranBundleAssetPath = 'assets/data/quran_uthmani_ur.json';
   static const String expectedQuranBundleSha256 = 'REPLACE_WITH_VERIFIED_SHA256_HASH';
 

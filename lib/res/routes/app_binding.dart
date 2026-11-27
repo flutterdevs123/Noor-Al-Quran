@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../../view_model/audio_quran_controller.dart';
 import '../services/settings_service.dart';
 
 /// Global dependency injection binding registered at application startup.
@@ -8,6 +9,9 @@ class AppBinding extends Bindings {
   void dependencies() {
     if (!Get.isRegistered<SettingsService>()) {
       Get.put<SettingsService>(SettingsService(), permanent: true);
+    }
+    if (!Get.isRegistered<AudioQuranController>()) {
+      Get.put<AudioQuranController>(AudioQuranController(), permanent: true);
     }
   }
 }
